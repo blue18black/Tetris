@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>STAGE TETRIS</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
+
+  :root{
+    --bg-0:#0b0712;
+    --bg-1:#160c24;
+    --panel:#1c1230;
+    --panel-line:#3a2a55;
+    --gold:#ffd166;
+    --paper:#f7f1ff;
+    --muted:#9988b8;
+
+    /* 7メンバーカラー (ハロプロ風ビタミンカラー) */
+    --c-i:#ff4d8d;  /* I: サクラピンク */
+    --c-o:#ffd23f;  /* O: サンシャインイエロー */
+    --c-t:#a45ee5;  /* T: グレープパープル */
+    --c-s:#33d17a;  /* S: ライムグリーン */
+    --c-z:#ff5757;  /* Z: チェリーレッド */
+    --c-j:#3f9bff;  /* J: スカイブルー */
+    --c-l:#ff9f3f;  /* L: オレンジソーダ */
+  }
+
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:
+      radial-gradient(ellipse at 50% -10%, #2a1740 0%, transparent 55%),
+      radial-gradient(ellipse at 90% 100%, #1a2440 0%, transparent 45%),
+      linear-gradient(180deg,var(--bg-0),var(--bg-1) 60%,#0a0610);
+    color:var(--paper);
+    font-family:'Zen Kaku Gothic New','Outfit',sans-serif;
+    overflow:hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ===== ステージライト演出 ===== */
+  .spotlights{
+    position:fixed; inset:0; pointer-events:none; z-index:0; mix-blend-mode:screen;
+  }
+  .spotlights span{
+    position:absolute; top:-20%; width:38vw; height:140vh;
+    background:linear-gradient(180deg, rgba(255,255,255,0.10), transparent 70%);
+    transform-origin:top center;
+    animation: sweep 7s ease-in-out infinite;
+    filter:blur(2px);
+  }
+  .spotlights span:nth-child(1){ left:-5%; background:linear-gradient(180deg, rgba(255,77,141,0.16), transparent 70%); animation-delay:0s;}
+  .spotlights span:nth-child(2){ left:30%; background:linear-gradient(180deg, rgba(63,155,255,0.14), transparent 70%); animation-delay:-2.3s;}
+  .spotlights span:nth-child(3){ left:65%; background:linear-gradient(180deg, rgba(255,210,63,0.13), transparent 70%); animation-delay:-4.6s;}
+  @keyframes sweep{
+    0%,100%{ transform:rotate(-14deg);}
+    50%{ transform:rotate(14deg);}
+  }
+
+  .app{
+    position:relative; z-index:1;
+    min-height:100vh; min-height:100dvh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:14px 12px 10px;
+  }
+
+  /* ===== ヘッダー ===== */
+  header{
+    width:100%; max-width:980px;
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-bottom:10px; padding:0 4px;
+  }
+  .logo{
+    font-family:'Outfit',sans-serif; font-weight:900; font-style:italic;
+    font-size:clamp(22px,5vw,32px); letter-spacing:0.02em;
+    background:linear-gradient(90deg,#ff4d8d,#ffd23f 50%,#3f9bff);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 0 30px rgba(255,77,141,0.25);
+  }
+  .logo small{
+    display:block; font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-style:normal;
+    font-size:10px; letter-spacing:0.35em; color:var(--muted); margin-top:-2px;
+  }
+  .credits-badge{
+    font-size:11px; color:var(--muted); text-align:right; line-height:1.5;
+  }
+
+  /* ===== メインレイアウト ===== */
+  .layout{
+    width:100%; max-width:980px;
+    display:flex; gap:16px; justify-content:center; align-items:flex-start;
+    flex:1; min-height:0;
+  }
+
+  .side-panel{
+    display:flex; flex-direction:column; gap:10px; width:128px; flex-shrink:0;
+  }
+  .panel-box{
+    background:linear-gradient(180deg, var(--panel), #150c26);
+    border:1px solid var(--panel-line);
+    border-radius:14px; padding:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .panel-label{
+    font-size:10px; letter-spacing:0.18em; color:var(--gold); font-weight:700;
+    margin-bottom:8px; display:flex; align-items:center; gap:5px;
+  }
+  .panel-label::before{ content:''; width:6px; height:6px; border-radius:50%; background:var(--gold); box-shadow:0 0 8px var(--gold);}
+
+  .stat-value{
+    font-family:'Outfit',sans-serif; font-weight:900; font-size:22px; color:var(--paper);
+    font-variant-numeric:tabular-nums;
+  }
+  .stat-row + .stat-row{ margin-top:10px; }
+
+  .next-mino-box{ display:flex; align-items:center; justify-content:center; min-height:60px; }
+  .next-mino-grid{ display:grid; gap:2px; }
+
+  /* ===== ゲームボード ===== */
+  .board-wrap{
+    position:relative; flex-shrink:0;
+    background:linear-gradient(180deg,#120a1f,#0c0716);
+    border:1px solid var(--panel-line);
+    border-radius:16px; padding:8px;
+    box-shadow:0 0 0 1px rgba(255,255,255,0.03) inset, 0 20px 50px rgba(0,0,0,0.5);
+  }
+  #board{
+    display:block; border-radius:8px; background:#070410;
+    box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
+  }
+  .board-glow{
+    position:absolute; inset:-1px; border-radius:16px; pointer-events:none;
+    box-shadow:0 0 40px rgba(164,94,229,0.18);
+  }
+
+  .overlay{
+    position:absolute; inset:8px; border-radius:10px;
+    background:rgba(7,4,16,0.86); backdrop-filter:blur(3px);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    text-align:center; padding:20px; z-index:5;
+  }
+  .overlay.hidden{ display:none; }
+  .overlay h2{
+    font-family:'Outfit',sans-serif; font-weight:900; font-style:italic; font-size:28px; margin:0;
+    background:linear-gradient(90deg,#ff4d8d,#ffd23f);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .overlay p{ margin:0; color:var(--muted); font-size:13px; line-height:1.7; max-width:280px;}
+  .btn{
+    appearance:none; border:none; cursor:pointer;
+    font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:14px;
+    padding:12px 28px; border-radius:999px; color:#1a0e2c;
+    background:linear-gradient(90deg,var(--gold),#ffb86b);
+    box-shadow:0 6px 18px rgba(255,209,102,0.3);
+    transition:transform .15s ease;
+  }
+  .btn:active{ transform:scale(0.95); }
+  .btn.secondary{
+    background:transparent; color:var(--paper);
+    border:1px solid var(--panel-line);
+    box-shadow:none;
+  }
+
+  /* ===== メンバーカラー凡例 ===== */
+  .legend{
+    display:flex; flex-direction:column; gap:5px;
+  }
+  .legend-item{
+    display:flex; align-items:center; gap:6px; font-size:9.5px; color:var(--muted);
+  }
+  .legend-chip{
+    width:12px; height:12px; border-radius:3px; flex-shrink:0;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.25);
+  }
+
+  /* ===== モバイル操作パッド ===== */
+  .touch-controls{
+    width:100%; max-width:980px;
+    display:none;
+    margin-top:10px;
+    gap:8px;
+    justify-content:center;
+    align-items:center;
+  }
+  .touch-controls.active{ display:flex; }
+  .tc-group{ display:flex; gap:8px; }
+  .tc-btn{
+    appearance:none; border:none; cursor:pointer;
+    width:54px; height:54px; border-radius:14px;
+    background:linear-gradient(180deg,var(--panel),#140a24);
+    border:1px solid var(--panel-line);
+    color:var(--paper); font-size:20px;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 10px rgba(0,0,0,0.4);
+    user-select:none;
+  }
+  .tc-btn:active{ background:linear-gradient(180deg,#3a2a55,var(--panel)); transform:scale(0.94); }
+  .tc-btn.wide{ width:84px; font-size:13px; font-weight:700;}
+  .tc-spacer{ flex:1; }
+
+  footer{
+    margin-top:8px; font-size:10px; color:#5f5380; text-align:center; max-width:600px;
+  }
+
+  /* マスのセルスタイル: グループ名タイル */
+  .cell-tile{
+    width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Outfit',sans-serif; font-weight:900; font-size:8px;
+    letter-spacing:0.02em;
+    color:rgba(255,255,255,0.92);
+    text-shadow:0 1px 2px rgba(0,0,0,0.5);
+    border-radius:2px;
+  }
+
+  @media (max-width:760px){
+    .side-panel{ width:84px; }
+    .stat-value{ font-size:16px; }
+    .panel-box{ padding:7px; }
+    .logo{ font-size:20px; }
+    .credits-badge{ display:none; }
+    .layout{ gap:8px; }
+  }
+  @media (max-width:480px){
+    .legend{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="spotlights"><span></span><span></span><span></span></div>
+
+<div class="app">
+  <header>
+    <div class="logo">STAGE TETRIS<small>HALOPRO STYLE BLOCK GAME</small></div>
+    <div class="credits-badge">7色のメンバーカラーで<br>ステージを埋め尽くせ</div>
+  </header>
+
+  <div class="layout">
+    <!-- 左パネル -->
+    <div class="side-panel">
+      <div class="panel-box">
+        <div class="panel-label">SCORE</div>
+        <div class="stat-value" id="score">0</div>
+      </div>
+      <div class="panel-box">
+        <div class="panel-label">LEVEL</div>
+        <div class="stat-value" id="level">1</div>
+      </div>
+      <div class="panel-box">
+        <div class="panel-label">LINES</div>
+        <div class="stat-value" id="lines">0</div>
+      </div>
+      <div class="panel-box">
+        <div class="panel-label">MEMBERS</div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+
+    <!-- 中央ボード -->
+    <div class="board-wrap">
+      <div class="board-glow"></div>
+      <canvas id="board"></canvas>
+
+      <div class="overlay" id="startOverlay">
+        <h2>READY?</h2>
+        <p>方向キーで移動・回転。7色のメンバーカラーブロックでラインを揃えて、満員ステージを作ろう。</p>
+        <button class="btn" id="startBtn">LIVE START</button>
+      </div>
+
+      <div class="overlay hidden" id="pauseOverlay">
+        <h2>PAUSE</h2>
+        <button class="btn" id="resumeBtn">再開する</button>
+      </div>
+
+      <div class="overlay hidden" id="overOverlay">
+        <h2>STAGE OVER</h2>
+        <p id="finalScoreText"></p>
+        <button class="btn" id="retryBtn">もう一度</button>
+      </div>
+    </div>
+
+    <!-- 右パネル -->
+    <div class="side-panel">
+      <div class="panel-box">
+        <div class="panel-label">NEXT</div>
+        <div class="next-mino-box"><div class="next-mino-grid" id="nextGrid"></div></div>
+      </div>
+      <div class="panel-box">
+        <div class="panel-label">HOLD</div>
+        <div class="next-mino-box"><div class="next-mino-grid" id="holdGrid"></div></div>
+      </div>
+      <div class="panel-box">
+        <button class="btn secondary" id="pauseBtn" style="width:100%; font-size:12px; padding:9px;">PAUSE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- スマホ用タッチ操作 -->
+  <div class="touch-controls" id="touchControls">
+    <div class="tc-group">
+      <button class="tc-btn" id="tcLeft">◀</button>
+      <button class="tc-btn" id="tcDown">▼</button>
+      <button class="tc-btn" id="tcRight">▶</button>
+    </div>
+    <div class="tc-spacer"></div>
+    <div class="tc-group">
+      <button class="tc-btn wide" id="tcHold">HOLD</button>
+      <button class="tc-btn" id="tcRotate">⟳</button>
+      <button class="tc-btn wide" id="tcDrop">DROP</button>
+    </div>
+  </div>
+
+  <footer>© STAGE TETRIS — ファンメイドのオリジナル作品です。実在のジャケット画像は使用していません。</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ====== メンバーカラー / グループ風ラベル定義 ====== */
+  /* 実在のグループ名/ジャケットは使わず、オリジナルのステージネームを割り当てる */
+  const TEAMS = {
+    I: { color:getVar('--c-i'), name:'SAKURA',  sub:'桜咲乙女隊'   },
+    O: { color:getVar('--c-o'), name:'SUNNY',   sub:'陽だまりGirls' },
+    T: { color:getVar('--c-t'), name:'GRAPE',   sub:'紫苑エンジェル' },
+    S: { color:getVar('--c-s'), name:'LIME',    sub:'新緑キッズ'   },
+    Z: { color:getVar('--c-z'), name:'CHERRY',  sub:'真紅レディース' },
+    J: { color:getVar('--c-j'), name:'SKY',     sub:'青空ユニゾン' },
+    L: { color:getVar('--c-l'), name:'SODA',    sub:'橙色サンセット' },
+  };
+  function getVar(name){
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  /* ====== テトリミノ定義（SRS座標, 4方向）====== */
+  const SHAPES = {
+    I: [
+      [[1,0],[1,1],[1,2],[1,3]],
+      [[0,2],[1,2],[2,2],[3,2]],
+      [[2,0],[2,1],[2,2],[2,3]],
+      [[0,1],[1,1],[2,1],[3,1]],
+    ],
+    O: [
+      [[0,1],[0,2],[1,1],[1,2]],
+      [[0,1],[0,2],[1,1],[1,2]],
+      [[0,1],[0,2],[1,1],[1,2]],
+      [[0,1],[0,2],[1,1],[1,2]],
+    ],
+    T: [
+      [[0,1],[1,0],[1,1],[1,2]],
+      [[0,1],[1,1],[1,2],[2,1]],
+      [[1,0],[1,1],[1,2],[2,1]],
+      [[0,1],[1,0],[1,1],[2,1]],
+    ],
+    S: [
+      [[0,1],[0,2],[1,0],[1,1]],
+      [[0,1],[1,1],[1,2],[2,2]],
+      [[1,1],[1,2],[2,0],[2,1]],
+      [[0,0],[1,0],[1,1],[2,1]],
+    ],
+    Z: [
+      [[0,0],[0,1],[1,1],[1,2]],
+      [[0,2],[1,1],[1,2],[2,1]],
+      [[1,0],[1,1],[2,1],[2,2]],
+      [[0,1],[1,0],[1,1],[2,0]],
+    ],
+    J: [
+      [[0,0],[1,0],[1,1],[1,2]],
+      [[0,1],[0,2],[1,1],[2,1]],
+      [[1,0],[1,1],[1,2],[2,2]],
+      [[0,1],[1,1],[2,0],[2,1]],
+    ],
+    L: [
+      [[0,2],[1,0],[1,1],[1,2]],
+      [[0,1],[1,1],[2,1],[2,2]],
+      [[1,0],[1,1],[1,2],[2,0]],
+      [[0,0],[0,1],[1,1],[2,1]],
+    ],
+  };
+  const KEYS = Object.keys(SHAPES); // I O T S Z J L
+
+  // 簡易ウォールキック(SRS風、JLSTZ共通 + I専用)
+  const KICK_JLSTZ = {
+    "0>1":[[0,0],[-1,0],[-1,1],[0,-2],[-1,-2]],
+    "1>0":[[0,0],[1,0],[1,-1],[0,2],[1,2]],
+    "1>2":[[0,0],[1,0],[1,-1],[0,2],[1,2]],
+    "2>1":[[0,0],[-1,0],[-1,1],[0,-2],[-1,-2]],
+    "2>3":[[0,0],[1,0],[1,1],[0,-2],[1,-2]],
+    "3>2":[[0,0],[-1,0],[-1,-1],[0,2],[-1,2]],
+    "3>0":[[0,0],[-1,0],[-1,-1],[0,2],[-1,2]],
+    "0>3":[[0,0],[1,0],[1,1],[0,-2],[1,-2]],
+  };
+  const KICK_I = {
+    "0>1":[[0,0],[-2,0],[1,0],[-2,-1],[1,2]],
+    "1>0":[[0,0],[2,0],[-1,0],[2,1],[-1,-2]],
+    "1>2":[[0,0],[-1,0],[2,0],[-1,2],[2,-1]],
+    "2>1":[[0,0],[1,0],[-2,0],[1,-2],[-2,1]],
+    "2>3":[[0,0],[2,0],[-1,0],[2,1],[-1,-2]],
+    "3>2":[[0,0],[-2,0],[1,0],[-2,-1],[1,2]],
+    "3>0":[[0,0],[1,0],[-2,0],[1,-2],[-2,1]],
+    "0>3":[[0,0],[-1,0],[2,0],[-1,2],[2,-1]],
+  };
+
+  const COLS = 10, ROWS = 20, CELL = 28;
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+  function sizeCanvas(){
+    const isSmall = window.innerWidth <= 480;
+    const cell = isSmall ? Math.floor((window.innerWidth - 120) / COLS) : CELL;
+    canvas.width = COLS * cell;
+    canvas.height = ROWS * cell;
+    canvas.dataset.cell = cell;
+  }
+  sizeCanvas();
+
+  let grid = makeGrid();
+  function makeGrid(){
+    return Array.from({length:ROWS}, () => Array(COLS).fill(null));
+  }
+
+  let bag = [];
+  function refillBag(){
+    const b = [...KEYS];
+    for(let i=b.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [b[i],b[j]] = [b[j],b[i]];
+    }
+    bag.push(...b);
+  }
+  function nextPiece(){
+    if(bag.length < 2) refillBag();
+    return bag.shift();
+  }
+
+  let current, currentKey, rot, px, py;
+  let holdKey = null, holdUsed = false;
+  let nextKey;
+
+  let score = 0, level = 1, linesCleared = 0;
+  let dropInterval = 800;
+  let dropTimer = 0;
+  let lastTime = 0;
+  let running = false, paused = false, gameOver = false;
+  let rafId = null;
+
+  const scoreEl = document.getElementById('score');
+  const levelEl = document.getElementById('level');
+  const linesEl = document.getElementById('lines');
+
+  function spawn(){
+    currentKey = nextKey || nextPiece();
+    nextKey = nextPiece();
+    rot = 0;
+    px = 3; py = -2;
+    holdUsed = false;
+    if(collides(currentKey, rot, px, py)){
+      endGame();
+      return;
+    }
+    renderNext();
+  }
+
+  function cellsOf(key, r){ return SHAPES[key][r]; }
+
+  function collides(key, r, ox, oy){
+    const cells = cellsOf(key, r);
+    for(const [cy,cx] of cells){
+      const x = ox + cx, y = oy + cy;
+      if(x < 0 || x >= COLS || y >= ROWS) return true;
+      if(y >= 0 && grid[y][x]) return true;
+    }
+    return false;
+  }
+
+  function lockPiece(){
+    const cells = cellsOf(currentKey, rot);
+    for(const [cy,cx] of cells){
+      const x = px+cx, y = py+cy;
+      if(y >= 0) grid[y][x] = currentKey;
+    }
+    clearLines();
+    spawn();
+  }
+
+  function clearLines(){
+    let cleared = 0;
+    for(let y=ROWS-1; y>=0; y--){
+      if(grid[y].every(c => c)){
+        grid.splice(y,1);
+        grid.unshift(Array(COLS).fill(null));
+        cleared++;
+        y++;
+      }
+    }
+    if(cleared > 0){
+      const points = [0,100,300,500,800][cleared] * level;
+      score += points;
+      linesCleared += cleared;
+      level = 1 + Math.floor(linesCleared / 10);
+      dropInterval = Math.max(120, 800 - (level-1)*60);
+      scoreEl.textContent = score;
+      levelEl.textContent = level;
+      linesEl.textContent = linesCleared;
+      flashRows();
+    }
+  }
+
+  let flashUntil = 0;
+  function flashRows(){
+    flashUntil = performance.now() + 180;
+  }
+
+  function tryMove(dx, dy){
+    if(!collides(currentKey, rot, px+dx, py+dy)){
+      px += dx; py += dy;
+      return true;
+    }
+    return false;
+  }
+
+  function tryRotate(dir){
+    const newRot = (rot + dir + 4) % 4;
+    const kicks = currentKey === 'I'
+      ? (KICK_I[`${rot}>${newRot}`] || [[0,0]])
+      : currentKey === 'O' ? [[0,0]]
+      : (KICK_JLSTZ[`${rot}>${newRot}`] || [[0,0]]);
+    for(const [kx,ky] of kicks){
+      if(!collides(currentKey, newRot, px+kx, py+ky)){
+        rot = newRot; px += kx; py += ky;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function hardDrop(){
+    let dist = 0;
+    while(!collides(currentKey, rot, px, py+1)){ py++; dist++; }
+    score += dist*2;
+    scoreEl.textContent = score;
+    lockPiece();
+  }
+
+  function softDrop(){
+    if(!tryMove(0,1)){
+      lockPiece();
+    } else {
+      score += 1;
+      scoreEl.textContent = score;
+    }
+    dropTimer = 0;
+  }
+
+  function doHold(){
+    if(holdUsed) return;
+    holdUsed = true;
+    if(holdKey === null){
+      holdKey = currentKey;
+      spawn();
+    } else {
+      const tmp = holdKey;
+      holdKey = currentKey;
+      currentKey = tmp;
+      rot = 0; px = 3; py = -2;
+    }
+    renderHold();
+  }
+
+  function ghostY(){
+    let gy = py;
+    while(!collides(currentKey, rot, px, gy+1)) gy++;
+    return gy;
+  }
+
+  /* ====== 描画: グループ名タイル風セル ====== */
+  function drawCell(x, y, key, alpha, ghost){
+    const cell = Number(canvas.dataset.cell) || CELL;
+    const team = TEAMS[key];
+    const px0 = x*cell, py0 = y*cell;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    if(ghost){
+      ctx.strokeStyle = team.color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4,3]);
+      ctx.strokeRect(px0+2, py0+2, cell-4, cell-4);
+      ctx.setLineDash([]);
+      ctx.restore();
+      return;
+    }
+
+    // タイル背景（メンバーカラーのグラデ）
+    const grad = ctx.createLinearGradient(px0, py0, px0+cell, py0+cell);
+    grad.addColorStop(0, shade(team.color, 18));
+    grad.addColorStop(1, shade(team.color, -12));
+    ctx.fillStyle = grad;
+    roundRect(ctx, px0+1, py0+1, cell-2, cell-2, 4);
+    ctx.fill();
+
+    // ハイライト
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    roundRect(ctx, px0+2, py0+2, cell-4, (cell-4)*0.35, 3);
+    ctx.fill();
+
+    // 枠線
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    roundRect(ctx, px0+1.5, py0+1.5, cell-3, cell-3, 4);
+    ctx.stroke();
+
+    // ラベル文字（タイル表示: 同じ画像/ラベルを各マスに繰り返す）
+    if(cell >= 18){
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.font = `900 ${Math.floor(cell*0.24)}px Outfit, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur = 2;
+      ctx.fillText(team.name.slice(0,4), px0+cell/2, py0+cell/2);
+    }
+
+    ctx.restore();
+  }
+
+  function shade(hex, percent){
+    const num = parseInt(hex.replace('#',''),16);
+    let r = (num>>16) + Math.round(255*(percent/100));
+    let g = ((num>>8)&0xff) + Math.round(255*(percent/100));
+    let b = (num&0xff) + Math.round(255*(percent/100));
+    r = Math.max(0,Math.min(255,r));
+    g = Math.max(0,Math.min(255,g));
+    b = Math.max(0,Math.min(255,b));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+
+  function draw(){
+    const cell = Number(canvas.dataset.cell) || CELL;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // グリッド線
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    ctx.lineWidth = 1;
+    for(let x=0;x<=COLS;x++){
+      ctx.beginPath(); ctx.moveTo(x*cell,0); ctx.lineTo(x*cell,ROWS*cell); ctx.stroke();
+    }
+    for(let y=0;y<=ROWS;y++){
+      ctx.beginPath(); ctx.moveTo(0,y*cell); ctx.lineTo(COLS*cell,y*cell); ctx.stroke();
+    }
+
+    // 固定ブロック
+    const flashing = performance.now() < flashUntil;
+    for(let y=0;y<ROWS;y++){
+      for(let x=0;x<COLS;x++){
+        if(grid[y][x]){
+          drawCell(x,y,grid[y][x], flashing ? 0.5 : 1, false);
+        }
+      }
+    }
+
+    if(running && !gameOver){
+      // ゴースト
+      const gy = ghostY();
+      for(const [cy,cx] of cellsOf(currentKey, rot)){
+        const x = px+cx, y = gy+cy;
+        if(y>=0) drawCell(x,y,currentKey,1,true);
+      }
+      // 現在のミノ
+      for(const [cy,cx] of cellsOf(currentKey, rot)){
+        const x = px+cx, y = py+cy;
+        if(y>=0) drawCell(x,y,currentKey,1,false);
+      }
+    }
+  }
+
+  /* ====== NEXT / HOLD 表示 ====== */
+  function renderMiniGrid(container, key){
+    container.innerHTML = '';
+    if(!key){
+      container.style.gridTemplateColumns = `repeat(4, 14px)`;
+      container.style.gridTemplateRows = `repeat(2, 14px)`;
+      return;
+    }
+    const cells = SHAPES[key][0];
+    const minY = Math.min(...cells.map(c=>c[0]));
+    const maxY = Math.max(...cells.map(c=>c[0]));
+    const minX = Math.min(...cells.map(c=>c[1]));
+    const maxX = Math.max(...cells.map(c=>c[1]));
+    const w = maxX-minX+1, h = maxY-minY+1;
+    const size = 16;
+    container.style.gridTemplateColumns = `repeat(${w}, ${size}px)`;
+    container.style.gridTemplateRows = `repeat(${h}, ${size}px)`;
+    const occupied = new Set(cells.map(([y,x]) => `${y-minY},${x-minX}`));
+    for(let y=0;y<h;y++){
+      for(let x=0;x<w;x++){
+        const d = document.createElement('div');
+        d.style.width = size+'px';
+        d.style.height = size+'px';
+        if(occupied.has(`${y},${x}`)){
+          const team = TEAMS[key];
+          d.style.background = `linear-gradient(135deg, ${shade(team.color,15)}, ${shade(team.color,-10)})`;
+          d.style.borderRadius = '3px';
+          d.style.boxShadow = 'inset 0 0 0 1px rgba(255,255,255,0.3)';
+          d.className = 'cell-tile';
+          d.textContent = team.name.slice(0,2);
+          d.style.fontSize = '6px';
+        }
+        container.appendChild(d);
+      }
+    }
+  }
+  function renderNext(){ renderMiniGrid(document.getElementById('nextGrid'), nextKey); }
+  function renderHold(){ renderMiniGrid(document.getElementById('holdGrid'), holdKey); }
+
+  /* ====== メンバーカラー凡例 ====== */
+  function renderLegend(){
+    const el = document.getElementById('legend');
+    el.innerHTML = '';
+    KEYS.forEach(k => {
+      const t = TEAMS[k];
+      const row = document.createElement('div');
+      row.className = 'legend-item';
+      row.innerHTML = `<span class="legend-chip" style="background:${t.color}"></span>${t.name} ${k}`;
+      el.appendChild(row);
+    });
+  }
+  renderLegend();
+
+  /* ====== ゲームループ ====== */
+  function loop(ts){
+    if(!lastTime) lastTime = ts;
+    const dt = ts - lastTime;
+    lastTime = ts;
+
+    if(running && !paused && !gameOver){
+      dropTimer += dt;
+      if(dropTimer > dropInterval){
+        dropTimer = 0;
+        if(!tryMove(0,1)){
+          lockPiece();
+        }
+      }
+    }
+    draw();
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function startGame(){
+    grid = makeGrid();
+    score = 0; level = 1; linesCleared = 0; dropInterval = 800;
+    holdKey = null; holdUsed = false;
+    bag = [];
+    nextKey = nextPiece();
+    scoreEl.textContent = 0; levelEl.textContent = 1; linesEl.textContent = 0;
+    gameOver = false; paused = false; running = true;
+    document.getElementById('startOverlay').classList.add('hidden');
+    document.getElementById('pauseOverlay').classList.add('hidden');
+    document.getElementById('overOverlay').classList.add('hidden');
+    spawn();
+    renderHold();
+    lastTime = 0;
+    if(rafId) cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(loop);
+  }
+
+  function endGame(){
+    gameOver = true; running = false;
+    document.getElementById('finalScoreText').textContent = `SCORE ${score} / LEVEL ${level} / LINES ${linesCleared}`;
+    document.getElementById('overOverlay').classList.remove('hidden');
+  }
+
+  function togglePause(){
+    if(!running || gameOver) return;
+    paused = !paused;
+    document.getElementById('pauseOverlay').classList.toggle('hidden', !paused);
+  }
+
+  /* ====== 入力: キーボード ====== */
+  const DAS_DELAY = 160, DAS_REPEAT = 40;
+  let heldDir = null, dasTimer = null, dasInterval = null;
+
+  document.addEventListener('keydown', (e) => {
+    if(!running || gameOver){
+      if(e.code === 'Enter' || e.code === 'Space'){
+        if(!running) startGame();
+      }
+      return;
+    }
+    if(e.code === 'KeyP'){ togglePause(); return; }
+    if(paused) return;
+
+    switch(e.code){
+      case 'ArrowLeft':
+        if(heldDir !== 'L'){ tryMove(-1,0); startDAS('L'); }
+        e.preventDefault(); break;
+      case 'ArrowRight':
+        if(heldDir !== 'R'){ tryMove(1,0); startDAS('R'); }
+        e.preventDefault(); break;
+      case 'ArrowDown':
+        softDrop(); e.preventDefault(); break;
+      case 'ArrowUp':
+      case 'KeyX':
+        tryRotate(1); e.preventDefault(); break;
+      case 'KeyZ':
+        tryRotate(-1); e.preventDefault(); break;
+      case 'Space':
+        hardDrop(); e.preventDefault(); break;
+      case 'KeyC':
+      case 'ShiftLeft':
+        doHold(); e.preventDefault(); break;
+    }
+  });
+  document.addEventListener('keyup', (e) => {
+    if(e.code === 'ArrowLeft' && heldDir === 'L') stopDAS();
+    if(e.code === 'ArrowRight' && heldDir === 'R') stopDAS();
+  });
+  function startDAS(dir){
+    stopDAS();
+    heldDir = dir;
+    dasTimer = setTimeout(() => {
+      dasInterval = setInterval(() => {
+        tryMove(dir === 'L' ? -1 : 1, 0);
+      }, DAS_REPEAT);
+    }, DAS_DELAY);
+  }
+  function stopDAS(){
+    heldDir = null;
+    clearTimeout(dasTimer);
+    clearInterval(dasInterval);
+  }
+
+  /* ====== ボタン ====== */
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('retryBtn').addEventListener('click', startGame);
+  document.getElementById('resumeBtn').addEventListener('click', togglePause);
+  document.getElementById('pauseBtn').addEventListener('click', togglePause);
+
+  /* ====== タッチ操作 ====== */
+  function isTouchDevice(){
+    return ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+  }
+  if(isTouchDevice()){
+    document.getElementById('touchControls').classList.add('active');
+  }
+  function bindHold(id, fn, repeat){
+    const el = document.getElementById(id);
+    let interval = null, timeout = null;
+    const start = (ev) => {
+      ev.preventDefault();
+      if(!running || paused || gameOver) return;
+      fn();
+      if(repeat){
+        timeout = setTimeout(() => {
+          interval = setInterval(fn, 50);
+        }, 200);
+      }
+    };
+    const end = (ev) => { ev.preventDefault(); clearTimeout(timeout); clearInterval(interval); };
+    el.addEventListener('touchstart', start, {passive:false});
+    el.addEventListener('touchend', end);
+    el.addEventListener('touchcancel', end);
+    el.addEventListener('mousedown', start);
+    el.addEventListener('mouseup', end);
+    el.addEventListener('mouseleave', end);
+  }
+  bindHold('tcLeft', () => tryMove(-1,0), true);
+  bindHold('tcRight', () => tryMove(1,0), true);
+  bindHold('tcDown', () => softDrop(), true);
+  bindHold('tcRotate', () => tryRotate(1), false);
+  bindHold('tcDrop', () => hardDrop(), false);
+  bindHold('tcHold', () => doHold(), false);
+
+  window.addEventListener('resize', () => {
+    sizeCanvas();
+  });
+
+  draw();
+})();
+</script>
+</body>
+</html>
