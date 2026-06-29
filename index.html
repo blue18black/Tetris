@@ -3,59 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>STAGE TETRIS</title>
+<title>TETRIS</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap');
 
   :root{
-    --bg-0:#0b0712;
-    --bg-1:#160c24;
-    --panel:#1c1230;
-    --panel-line:#3a2a55;
-    --gold:#ffd166;
-    --paper:#f7f1ff;
-    --muted:#9988b8;
-
-    /* 7メンバーカラー (ハロプロ風ビタミンカラー) */
-    --c-i:#ff4d8d;  /* I: サクラピンク */
-    --c-o:#ffd23f;  /* O: サンシャインイエロー */
-    --c-t:#a45ee5;  /* T: グレープパープル */
-    --c-s:#33d17a;  /* S: ライムグリーン */
-    --c-z:#ff5757;  /* Z: チェリーレッド */
-    --c-j:#3f9bff;  /* J: スカイブルー */
-    --c-l:#ff9f3f;  /* L: オレンジソーダ */
+    --bg-0:#0b0e14;
+    --bg-1:#10141d;
+    --panel:#161b26;
+    --panel-line:#2a3142;
+    --accent:#5cc8ff;
+    --paper:#eef1f7;
+    --muted:#7c879c;
   }
 
   *{box-sizing:border-box;}
   html,body{
     margin:0; padding:0; height:100%;
     background:
-      radial-gradient(ellipse at 50% -10%, #2a1740 0%, transparent 55%),
-      radial-gradient(ellipse at 90% 100%, #1a2440 0%, transparent 45%),
-      linear-gradient(180deg,var(--bg-0),var(--bg-1) 60%,#0a0610);
+      radial-gradient(ellipse at 50% -10%, #1a2230 0%, transparent 55%),
+      linear-gradient(180deg,var(--bg-0),var(--bg-1));
     color:var(--paper);
     font-family:'Zen Kaku Gothic New','Outfit',sans-serif;
     overflow:hidden;
     -webkit-tap-highlight-color: transparent;
-  }
-
-  /* ===== ステージライト演出 ===== */
-  .spotlights{
-    position:fixed; inset:0; pointer-events:none; z-index:0; mix-blend-mode:screen;
-  }
-  .spotlights span{
-    position:absolute; top:-20%; width:38vw; height:140vh;
-    background:linear-gradient(180deg, rgba(255,255,255,0.10), transparent 70%);
-    transform-origin:top center;
-    animation: sweep 7s ease-in-out infinite;
-    filter:blur(2px);
-  }
-  .spotlights span:nth-child(1){ left:-5%; background:linear-gradient(180deg, rgba(255,77,141,0.16), transparent 70%); animation-delay:0s;}
-  .spotlights span:nth-child(2){ left:30%; background:linear-gradient(180deg, rgba(63,155,255,0.14), transparent 70%); animation-delay:-2.3s;}
-  .spotlights span:nth-child(3){ left:65%; background:linear-gradient(180deg, rgba(255,210,63,0.13), transparent 70%); animation-delay:-4.6s;}
-  @keyframes sweep{
-    0%,100%{ transform:rotate(-14deg);}
-    50%{ transform:rotate(14deg);}
   }
 
   .app{
@@ -74,16 +45,8 @@
   .logo{
     font-family:'Outfit',sans-serif; font-weight:900; font-style:italic;
     font-size:clamp(22px,5vw,32px); letter-spacing:0.02em;
-    background:linear-gradient(90deg,#ff4d8d,#ffd23f 50%,#3f9bff);
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    text-shadow:0 0 30px rgba(255,77,141,0.25);
-  }
-  .logo small{
-    display:block; font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-style:normal;
-    font-size:10px; letter-spacing:0.35em; color:var(--muted); margin-top:-2px;
-  }
-  .credits-badge{
-    font-size:11px; color:var(--muted); text-align:right; line-height:1.5;
+    color:var(--paper);
+    text-shadow:0 0 24px rgba(92,200,255,0.25);
   }
 
   /* ===== メインレイアウト ===== */
@@ -98,22 +61,21 @@
     min-height:0; overflow-y:auto; scrollbar-width:thin;
   }
   .panel-box{
-    background:linear-gradient(180deg, var(--panel), #150c26);
+    background:linear-gradient(180deg, var(--panel), #11151e);
     border:1px solid var(--panel-line);
     border-radius:14px; padding:10px;
-    box-shadow:0 8px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+    box-shadow:0 8px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
   }
   .panel-label{
-    font-size:10px; letter-spacing:0.18em; color:var(--gold); font-weight:700;
+    font-size:10px; letter-spacing:0.18em; color:var(--accent); font-weight:700;
     margin-bottom:8px; display:flex; align-items:center; gap:5px;
   }
-  .panel-label::before{ content:''; width:6px; height:6px; border-radius:50%; background:var(--gold); box-shadow:0 0 8px var(--gold);}
+  .panel-label::before{ content:''; width:6px; height:6px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent);}
 
   .stat-value{
     font-family:'Outfit',sans-serif; font-weight:900; font-size:22px; color:var(--paper);
     font-variant-numeric:tabular-nums;
   }
-  .stat-row + .stat-row{ margin-top:10px; }
 
   .next-mino-box{ display:flex; align-items:center; justify-content:center; min-height:60px; }
   .next-mino-grid{ display:grid; gap:2px; }
@@ -125,39 +87,34 @@
   }
   .board-inner{
     position:relative; max-width:100%; max-height:100%;
-    background:linear-gradient(180deg,#120a1f,#0c0716);
+    background:linear-gradient(180deg,#11151e,#0b0e14);
     border:1px solid var(--panel-line);
     border-radius:16px; padding:8px;
     box-shadow:0 0 0 1px rgba(255,255,255,0.03) inset, 0 20px 50px rgba(0,0,0,0.5);
   }
   #board{
-    display:block; border-radius:8px; background:#070410;
+    display:block; border-radius:8px; background:#070910;
     box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
-  }
-  .board-glow{
-    position:absolute; inset:-1px; border-radius:16px; pointer-events:none;
-    box-shadow:0 0 40px rgba(164,94,229,0.18);
   }
 
   .overlay{
     position:absolute; inset:8px; border-radius:10px; overflow-y:auto;
-    background:rgba(7,4,16,0.86); backdrop-filter:blur(3px);
+    background:rgba(8,10,15,0.88); backdrop-filter:blur(3px);
     display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
     text-align:center; padding:20px; z-index:5;
   }
   .overlay.hidden{ display:none; }
   .overlay h2{
     font-family:'Outfit',sans-serif; font-weight:900; font-style:italic; font-size:28px; margin:0;
-    background:linear-gradient(90deg,#ff4d8d,#ffd23f);
-    -webkit-background-clip:text; background-clip:text; color:transparent;
+    color:var(--accent);
   }
   .overlay p{ margin:0; color:var(--muted); font-size:13px; line-height:1.7; max-width:280px;}
   .btn{
     appearance:none; border:none; cursor:pointer;
     font-family:'Zen Kaku Gothic New',sans-serif; font-weight:700; font-size:14px;
-    padding:12px 28px; border-radius:999px; color:#1a0e2c;
-    background:linear-gradient(90deg,var(--gold),#ffb86b);
-    box-shadow:0 6px 18px rgba(255,209,102,0.3);
+    padding:12px 28px; border-radius:999px; color:#0b0e14;
+    background:linear-gradient(90deg,var(--accent),#8fe3ff);
+    box-shadow:0 6px 18px rgba(92,200,255,0.3);
     transition:transform .15s ease;
   }
   .btn:active{ transform:scale(0.95); }
@@ -165,18 +122,6 @@
     background:transparent; color:var(--paper);
     border:1px solid var(--panel-line);
     box-shadow:none;
-  }
-
-  /* ===== メンバーカラー凡例 ===== */
-  .legend{
-    display:flex; flex-direction:column; gap:5px;
-  }
-  .legend-item{
-    display:flex; align-items:center; gap:6px; font-size:9.5px; color:var(--muted);
-  }
-  .legend-chip{
-    width:12px; height:12px; border-radius:3px; flex-shrink:0;
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.25);
   }
 
   /* ===== モバイル操作パッド ===== */
@@ -197,14 +142,14 @@
   .tc-btn{
     appearance:none; border:none; cursor:pointer;
     width:54px; height:54px; border-radius:14px;
-    background:linear-gradient(180deg,var(--panel),#140a24);
+    background:linear-gradient(180deg,var(--panel),#0e1118);
     border:1px solid var(--panel-line);
     color:var(--paper); font-size:20px;
     display:flex; align-items:center; justify-content:center;
     box-shadow:0 4px 10px rgba(0,0,0,0.4);
     user-select:none;
   }
-  .tc-btn:active{ background:linear-gradient(180deg,#3a2a55,var(--panel)); transform:scale(0.94); }
+  .tc-btn:active{ background:linear-gradient(180deg,#2a3142,var(--panel)); transform:scale(0.94); }
   .tc-btn.wide{ width:84px; font-size:13px; font-weight:700;}
 
   /* ===== キーボード操作ガイド (PC向け) ===== */
@@ -215,25 +160,9 @@
   .kbd-key{
     display:inline-flex; align-items:center; justify-content:center;
     min-width:28px; padding:2px 5px; border-radius:5px;
-    background:linear-gradient(180deg,#2a1c44,#160c24);
+    background:linear-gradient(180deg,#222838,#11151e);
     border:1px solid var(--panel-line); color:var(--paper);
     font-size:9px; font-weight:700; font-family:'Outfit',sans-serif;
-  }
-
-  footer{
-    display:none;
-    margin-top:8px; font-size:10px; color:#5f5380; text-align:center; max-width:600px;
-  }
-
-  /* マスのセルスタイル: グループ名タイル */
-  .cell-tile{
-    width:100%; height:100%;
-    display:flex; align-items:center; justify-content:center;
-    font-family:'Outfit',sans-serif; font-weight:900; font-size:8px;
-    letter-spacing:0.02em;
-    color:rgba(255,255,255,0.92);
-    text-shadow:0 1px 2px rgba(0,0,0,0.5);
-    border-radius:2px;
   }
 
   @media (max-width:760px) and (orientation:portrait){
@@ -243,11 +172,10 @@
       justify-content:center; gap:6px;
     }
     .side-panel .panel-box{ flex:1 1 78px; }
-    .legend-box{ display:none; }
+    .kbd-guide.active{ display:none; }
     .stat-value{ font-size:16px; }
     .panel-box{ padding:7px; }
     .logo{ font-size:20px; }
-    .credits-badge{ display:none; }
   }
   @media (max-width:340px){
     .tc-btn{ width:46px; height:46px; font-size:17px; }
@@ -256,7 +184,6 @@
   }
   /* 縦方向が狭い画面 (横向きスマホ等) はパネルを切り詰めて操作ボタンの表示を優先 */
   @media (max-height:520px){
-    .legend-box{ display:none; }
     .kbd-guide.active{ display:none; }
     .panel-box{ padding:6px; }
     .next-mino-box{ min-height:40px; }
@@ -267,12 +194,9 @@
 </head>
 <body>
 
-<div class="spotlights"><span></span><span></span><span></span></div>
-
 <div class="app">
   <header>
-    <div class="logo">STAGE TETRIS<small>HALOPRO STYLE BLOCK GAME</small></div>
-    <div class="credits-badge">7色のメンバーカラーで<br>ステージを埋め尽くせ</div>
+    <div class="logo">TETRIS</div>
   </header>
 
   <div class="layout">
@@ -290,22 +214,17 @@
         <div class="panel-label">LINES</div>
         <div class="stat-value" id="lines">0</div>
       </div>
-      <div class="panel-box legend-box">
-        <div class="panel-label">MEMBERS</div>
-        <div class="legend" id="legend"></div>
-      </div>
     </div>
 
     <!-- 中央ボード -->
     <div class="board-wrap">
       <div class="board-inner">
-        <div class="board-glow"></div>
         <canvas id="board"></canvas>
 
         <div class="overlay" id="startOverlay">
           <h2>READY?</h2>
-          <p>方向キーで移動・回転。7色のメンバーカラーブロックでラインを揃えて、満員ステージを作ろう。</p>
-          <button class="btn" id="startBtn">LIVE START</button>
+          <p>矢印キーで移動・落下。Z/Cキーで回転、Xでホールド。スマホは下のボタンで操作できます。</p>
+          <button class="btn" id="startBtn">START</button>
         </div>
 
         <div class="overlay hidden" id="pauseOverlay">
@@ -314,7 +233,7 @@
         </div>
 
         <div class="overlay hidden" id="overOverlay">
-          <h2>STAGE OVER</h2>
+          <h2>GAME OVER</h2>
           <p id="finalScoreText"></p>
           <button class="btn" id="retryBtn">もう一度</button>
         </div>
@@ -364,54 +283,22 @@
       <button class="tc-btn wide" id="tcDrop">DROP</button>
     </div>
   </div>
-
-  <footer>© STAGE TETRIS — ファンメイドのオリジナル作品です。実在のジャケット画像は使用していません。</footer>
 </div>
 
 <script>
 (function(){
   "use strict";
 
-  /* ====== メンバーカラー / グループ風ラベル定義 ====== */
-  /* 実在のグループ名/ジャケットは使わず、オリジナルのステージネームを割り当てる */
-  const TEAMS = {
-    I: { color:getVar('--c-i'), name:'SAKURA',  sub:'桜咲乙女隊',   jacket:'img/morning.webp' },
-    O: { color:getVar('--c-o'), name:'SUNNY',   sub:'陽だまりGirls', jacket:'img/ange.webp' },
-    T: { color:getVar('--c-t'), name:'GRAPE',   sub:'紫苑エンジェル', jacket:'img/juice.webp' },
-    S: { color:getVar('--c-s'), name:'LIME',    sub:'新緑キッズ',   jacket:'img/tsubaki.webp' },
-    Z: { color:getVar('--c-z'), name:'CHERRY',  sub:'真紅レディース', jacket:'img/beyo.webp' },
-    J: { color:getVar('--c-j'), name:'SKY',     sub:'青空ユニゾン', jacket:'img/ocha.webp' },
-    L: { color:getVar('--c-l'), name:'SODA',    sub:'橙色サンセット', jacket:'img/rosy.webp' },
+  /* ====== ミノの色 (標準テトリス配色) ====== */
+  const COLORS = {
+    I: '#21d4d4',
+    O: '#f0c419',
+    T: '#a259e6',
+    S: '#3ddc6f',
+    Z: '#e6483c',
+    J: '#3b82f6',
+    L: '#f0922d',
   };
-  const jacketImages = {};
-  function getJacketImage(key){
-    const url = TEAMS[key].jacket;
-    if(!url) return null;
-    let img = jacketImages[key];
-    if(!img){
-      img = new Image();
-      img.onload = () => draw();
-      img.src = url;
-      jacketImages[key] = img;
-    }
-    return (img.complete && img.naturalWidth > 0) ? img : null;
-  }
-  function drawImageCover(ctx, img, x, y, w, h){
-    const ir = img.naturalWidth / img.naturalHeight;
-    const r = w / h;
-    let sx, sy, sw, sh;
-    if(ir > r){
-      sh = img.naturalHeight; sw = sh * r;
-      sx = (img.naturalWidth - sw) / 2; sy = 0;
-    } else {
-      sw = img.naturalWidth; sh = sw / r;
-      sx = 0; sy = (img.naturalHeight - sh) / 2;
-    }
-    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
-  }
-  function getVar(name){
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  }
 
   /* ====== テトリミノ定義（SRS座標, 4方向）====== */
   const SHAPES = {
@@ -521,7 +408,7 @@
     return bag.shift();
   }
 
-  let current, currentKey, rot, px, py;
+  let currentKey, rot, px, py;
   let holdKey = null, holdUsed = false;
   let nextKey;
 
@@ -531,6 +418,8 @@
   let lastTime = 0;
   let running = false, paused = false, gameOver = false;
   let rafId = null;
+  let clearing = null; // { rows:[...], startTime }
+  const CLEAR_FLASH_MS = 360;
 
   const scoreEl = document.getElementById('score');
   const levelEl = document.getElementById('level');
@@ -574,35 +463,35 @@
       return;
     }
     clearLines();
-    spawn();
   }
 
   function clearLines(){
-    let cleared = 0;
-    for(let y=ROWS-1; y>=0; y--){
-      if(grid[y].every(c => c)){
-        grid.splice(y,1);
-        grid.unshift(Array(COLS).fill(null));
-        cleared++;
-        y++;
-      }
+    const fullRows = [];
+    for(let y=0; y<ROWS; y++){
+      if(grid[y].every(c => c)) fullRows.push(y);
     }
-    if(cleared > 0){
-      const points = [0,100,300,500,800][cleared] * level;
-      score += points;
-      linesCleared += cleared;
-      level = 1 + Math.floor(linesCleared / 10);
-      dropInterval = Math.max(120, 800 - (level-1)*60);
-      scoreEl.textContent = score;
-      levelEl.textContent = level;
-      linesEl.textContent = linesCleared;
-      flashRows();
+    if(fullRows.length === 0){
+      spawn();
+      return;
     }
+    const points = [0,100,300,500,800][fullRows.length] * level;
+    score += points;
+    linesCleared += fullRows.length;
+    level = 1 + Math.floor(linesCleared / 10);
+    dropInterval = Math.max(120, 800 - (level-1)*60);
+    scoreEl.textContent = score;
+    levelEl.textContent = level;
+    linesEl.textContent = linesCleared;
+    clearing = { rows: fullRows, startTime: performance.now() };
   }
 
-  let flashUntil = 0;
-  function flashRows(){
-    flashUntil = performance.now() + 180;
+  function finishClearing(){
+    clearing.rows.slice().sort((a,b)=>b-a).forEach(y => {
+      grid.splice(y,1);
+      grid.unshift(Array(COLS).fill(null));
+    });
+    clearing = null;
+    spawn();
   }
 
   function tryMove(dx, dy){
@@ -667,16 +556,15 @@
     return gy;
   }
 
-  /* ====== 描画: グループ名タイル風セル ====== */
-  function drawCell(x, y, key, alpha, ghost){
+  /* ====== 描画 ====== */
+  function drawCell(x, y, key, ghost, flash){
     const cell = Number(canvas.dataset.cell) || CELL;
-    const team = TEAMS[key];
+    const color = COLORS[key];
     const px0 = x*cell, py0 = y*cell;
     ctx.save();
-    ctx.globalAlpha = alpha;
 
     if(ghost){
-      ctx.strokeStyle = team.color;
+      ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.setLineDash([4,3]);
       ctx.strokeRect(px0+2, py0+2, cell-4, cell-4);
@@ -685,43 +573,28 @@
       return;
     }
 
-    // タイル背景（ジャケ写があれば優先表示、なければメンバーカラーのグラデ）
-    const jacket = getJacketImage(key);
     roundRect(ctx, px0+1, py0+1, cell-2, cell-2, 4);
-    if(jacket){
-      ctx.save();
-      ctx.clip();
-      drawImageCover(ctx, jacket, px0+1, py0+1, cell-2, cell-2);
-      ctx.restore();
+    if(flash){
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
     } else {
       const grad = ctx.createLinearGradient(px0, py0, px0+cell, py0+cell);
-      grad.addColorStop(0, shade(team.color, 18));
-      grad.addColorStop(1, shade(team.color, -12));
+      grad.addColorStop(0, shade(color, 18));
+      grad.addColorStop(1, shade(color, -12));
       ctx.fillStyle = grad;
       ctx.fill();
-    }
 
-    // ハイライト
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    roundRect(ctx, px0+2, py0+2, cell-4, (cell-4)*0.35, 3);
-    ctx.fill();
+      // ハイライト
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      roundRect(ctx, px0+2, py0+2, cell-4, (cell-4)*0.35, 3);
+      ctx.fill();
+    }
 
     // 枠線
     ctx.strokeStyle = 'rgba(255,255,255,0.35)';
     ctx.lineWidth = 1;
     roundRect(ctx, px0+1.5, py0+1.5, cell-3, cell-3, 4);
     ctx.stroke();
-
-    // ラベル文字（タイル表示: ジャケ写が無い場合のみ表示）
-    if(cell >= 18 && !jacket){
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.font = `900 ${Math.floor(cell*0.24)}px Outfit, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = 'rgba(0,0,0,0.5)';
-      ctx.shadowBlur = 2;
-      ctx.fillText(team.name.slice(0,4), px0+cell/2, py0+cell/2);
-    }
 
     ctx.restore();
   }
@@ -761,27 +634,32 @@
       ctx.beginPath(); ctx.moveTo(0,y*cell); ctx.lineTo(COLS*cell,y*cell); ctx.stroke();
     }
 
-    // 固定ブロック
-    const flashing = performance.now() < flashUntil;
+    // 固定ブロック（消去中のラインは点滅させる）
+    let blink = false;
+    if(clearing){
+      const elapsed = performance.now() - clearing.startTime;
+      blink = Math.floor(elapsed / 60) % 2 === 0;
+    }
     for(let y=0;y<ROWS;y++){
       for(let x=0;x<COLS;x++){
         if(grid[y][x]){
-          drawCell(x,y,grid[y][x], flashing ? 0.5 : 1, false);
+          const isClearing = clearing && clearing.rows.includes(y);
+          drawCell(x,y,grid[y][x], false, isClearing && blink);
         }
       }
     }
 
-    if(running && !gameOver){
+    if(running && !gameOver && !clearing){
       // ゴースト
       const gy = ghostY();
       for(const [cy,cx] of cellsOf(currentKey, rot)){
         const x = px+cx, y = gy+cy;
-        if(y>=0) drawCell(x,y,currentKey,1,true);
+        if(y>=0) drawCell(x,y,currentKey,true,false);
       }
       // 現在のミノ
       for(const [cy,cx] of cellsOf(currentKey, rot)){
         const x = px+cx, y = py+cy;
-        if(y>=0) drawCell(x,y,currentKey,1,false);
+        if(y>=0) drawCell(x,y,currentKey,false,false);
       }
     }
   }
@@ -810,19 +688,10 @@
         d.style.width = size+'px';
         d.style.height = size+'px';
         if(occupied.has(`${y},${x}`)){
-          const team = TEAMS[key];
-          d.className = 'cell-tile';
+          const color = COLORS[key];
+          d.style.background = `linear-gradient(135deg, ${shade(color,15)}, ${shade(color,-10)})`;
           d.style.borderRadius = '3px';
           d.style.boxShadow = 'inset 0 0 0 1px rgba(255,255,255,0.3)';
-          if(team.jacket){
-            d.style.backgroundImage = `url(${team.jacket})`;
-            d.style.backgroundSize = 'cover';
-            d.style.backgroundPosition = 'center';
-          } else {
-            d.style.background = `linear-gradient(135deg, ${shade(team.color,15)}, ${shade(team.color,-10)})`;
-            d.textContent = team.name.slice(0,2);
-            d.style.fontSize = '6px';
-          }
         }
         container.appendChild(d);
       }
@@ -831,27 +700,17 @@
   function renderNext(){ renderMiniGrid(document.getElementById('nextGrid'), nextKey); }
   function renderHold(){ renderMiniGrid(document.getElementById('holdGrid'), holdKey); }
 
-  /* ====== メンバーカラー凡例 ====== */
-  function renderLegend(){
-    const el = document.getElementById('legend');
-    el.innerHTML = '';
-    KEYS.forEach(k => {
-      const t = TEAMS[k];
-      const row = document.createElement('div');
-      row.className = 'legend-item';
-      row.innerHTML = `<span class="legend-chip" style="background:${t.color}"></span>${t.name} ${k}`;
-      el.appendChild(row);
-    });
-  }
-  renderLegend();
-
   /* ====== ゲームループ ====== */
   function loop(ts){
     if(!lastTime) lastTime = ts;
     const dt = ts - lastTime;
     lastTime = ts;
 
-    if(running && !paused && !gameOver){
+    if(clearing){
+      if(ts - clearing.startTime >= CLEAR_FLASH_MS){
+        finishClearing();
+      }
+    } else if(running && !paused && !gameOver){
       dropTimer += dt;
       if(dropTimer > dropInterval){
         dropTimer = 0;
@@ -868,6 +727,7 @@
     grid = makeGrid();
     score = 0; level = 1; linesCleared = 0; dropInterval = 800;
     holdKey = null; holdUsed = false;
+    clearing = null;
     bag = [];
     nextKey = nextPiece();
     scoreEl.textContent = 0; levelEl.textContent = 1; linesEl.textContent = 0;
@@ -906,7 +766,7 @@
       return;
     }
     if(e.code === 'KeyP'){ togglePause(); return; }
-    if(paused) return;
+    if(paused || clearing) return;
 
     switch(e.code){
       case 'ArrowLeft':
@@ -968,7 +828,7 @@
     let interval = null, timeout = null;
     const start = (ev) => {
       ev.preventDefault();
-      if(!running || paused || gameOver) return;
+      if(!running || paused || gameOver || clearing) return;
       fn();
       if(repeat){
         timeout = setTimeout(() => {
